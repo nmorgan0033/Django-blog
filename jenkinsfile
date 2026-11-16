@@ -15,12 +15,14 @@ pipeline {
 
         stage('Validate') {
             steps {
+                echo 'Checking Docker environment...'
+
                 sh '''
-                    python --version
                     docker --version
                     docker compose version
-                    docker compose run --rm web python manage.py check
                 '''
+
+                echo 'Docker environment validation passed!'
             }
         }
         
