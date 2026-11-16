@@ -1,12 +1,11 @@
-
 name: Docker Image CI
 
 on:
   push:
-    branches: ["main"]
+    branches: ["feature/ci-pipeline"]
 
   pull_request:
-    branches: ["main"]
+    branches: ["feature/ci-pipeline"]
 
 jobs:
   build:
