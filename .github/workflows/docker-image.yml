@@ -64,38 +64,44 @@ jobs:
             "CLOUDINARY_URL=${CLOUDINARY_URL:-cloudinary://dummy:dummy@dummy}" \
             > .env
 
-      # 5. Validate Nginx configuration
-      - name: Validate Nginx configuration
-        run: |
-          docker compose run --rm --no-deps nginx nginx -t
-
-      # 6. Build Docker Compose services
+      # 5. Build Docker Compose services
       - name: Build Docker Compose services
         run: |
           docker compose build
 
-      # 7. Verify Docker images
+      # 6. Verify Docker images and Compose configuration
       - name: Verify Docker images
         run: |
           docker compose config --services
+          docker compose images
           docker images
 
-      # 8. Run migrations
+      # 7. Run database migrations
       - name: Run database migrations
         run: |
           docker compose run --rm web python manage.py migrate
 
-      # 9. Run Django tests
+      # 8. Run Django tests
       - name: Run Django tests
         run: |
           docker compose run --rm web python manage.py test
 
-      # 10. Start the full stack
+      # 9. Start Django service so Nginx can resolve web:8000
+      - name: Start Django service
+        run: |
+          docker compose up -d web
+
+      # 10. Validate Nginx configuration
+      - name: Validate Nginx configuration
+        run: |
+          docker compose run --rm --no-deps nginx nginx -t
+
+      # 11. Start the full stack
       - name: Start Docker Compose stack
         run: |
           docker compose up -d
 
-      # 11. Smoke test Nginx -> Django
+      # 12. Smoke test Nginx -> Django
       - name: Stack Smoke Test
         run: |
           echo "Waiting for Nginx and Django..."
@@ -122,8 +128,8 @@ jobs:
 
           echo "Stack smoke test passed!"
 
-      # 12. Teardown
+      # 13. Teardown
       - name: Teardown Docker Compose stack
         if: always()
         run: |
-          docker compose down -v
+          docker compose down -v --remove-orphans
