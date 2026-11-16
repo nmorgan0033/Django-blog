@@ -16,30 +16,62 @@ pipeline {
         stage('Validate') {
             steps {
                 echo 'Checking Docker environment...'
-
                 sh '''
                     docker --version
                     docker compose version
                 '''
-
                 echo 'Docker environment validation passed!'
             }
         }
-        
-        stage('Build Docker Image') {
+
+        stage('Build') {
             steps {
-                echo "Building Docker image using Dockerfile..."
-                sh "docker build -f Dockerfile -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest ."
+                echo "Building web image and tagging as ${IMAGE_NAME}:${IMAGE_TAG}..."
+                // Build the web service image via Compose (picks up docker-compose.yml context)
+                sh 'docker compose build web'
+                // Tag the built image so Jenkins keeps a versioned artifact
+                sh "docker tag ${IMAGE_NAME}:latest ${IMAGE_NAME}:${IMAGE_TAG}"
             }
         }
 
         stage('Run Tests') {
             steps {
+                echo 'Running Django test suite inside the web container...'
                 sh '''
                     docker compose run --rm web \
                         python manage.py test
                 '''
             }
+        }
+
+        stage('Stack Smoke Test') {
+            steps {
+                echo 'Starting full stack (web + nginx)...'
+                sh 'docker compose up -d'
+
+                // Give Django/Gunicorn time to start before hitting Nginx
+                echo 'Waiting 10 s for services to become ready...'
+                sh 'sleep 10'
+
+                echo 'Checking Nginx is proxying requests to Django (HTTP 200)...'
+                // curl flags: -f fails on HTTP errors, -s silent, -o discard body, -w print status code
+                sh 'curl -fso /dev/null -w "%{http_code}" http://localhost:80'
+
+                echo 'Stack smoke test passed!'
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Tearing down compose stack...'
+            sh 'docker compose down'
+        }
+        success {
+            echo "Build ${IMAGE_TAG} passed all stages."
+        }
+        failure {
+            echo "Build ${IMAGE_TAG} failed. Check the logs above."
         }
     }
 }
