@@ -10,6 +10,6 @@ services:
     env_file:
       - .env
     # Use gunicorn in production; runserver is dev-only
-    #command: gunicorn DjangoProject.wsgi:application --bind 0.0.0.0:8000 --workers 2
-    command: python manage.py runserver 0.0.0.0:8000
+    command: gunicorn DjangoProject.wsgi:application --bind 0.0.0.0:8000 --workers 2
+    # command: python manage.py runserver 0.0.0.0:8000
     restart: unless-stopped
