@@ -1,0 +1,31 @@
+
+name: Docker Image CI
+
+on:
+  push:
+    branches: ["main"]
+
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Download repository source code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build \
+            --file Dockerfile \
+            --tag my-django-app:${{ github.sha }} \
+            .
+
+      # 3. Verify that the image was created
+      - name: Verify Docker image
+        run: docker images my-django-app
